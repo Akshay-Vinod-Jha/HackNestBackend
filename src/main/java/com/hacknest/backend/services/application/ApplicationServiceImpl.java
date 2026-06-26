@@ -191,6 +191,37 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .updatedAt(savedApplication.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public ApplicationResponse rejectApplication(String applicationId, String userId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw new IllegalArgumentException("Application is not in PENDING state");
+        }
+
+        Team team = teamRepository.findById(application.getTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+
+        if (!team.getLeaderId().equals(userId)) {
+            throw new IllegalArgumentException("Only the team leader can reject applications");
+        }
+
+        application.setStatus(ApplicationStatus.REJECTED);
+        Application savedApplication = applicationRepository.save(application);
+
+        return ApplicationResponse.builder()
+                .id(savedApplication.getId())
+                .teamId(savedApplication.getTeamId())
+                .applicantId(savedApplication.getApplicantId())
+                .roleApplied(savedApplication.getRoleApplied())
+                .message(savedApplication.getMessage())
+                .status(savedApplication.getStatus())
+                .createdAt(savedApplication.getCreatedAt())
+                .updatedAt(savedApplication.getUpdatedAt())
+                .build();
+    }
     
     private int calculateTeamCompletion(Team team) {
         if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {

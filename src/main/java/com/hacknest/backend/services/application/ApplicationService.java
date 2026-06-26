@@ -10,4 +10,5 @@ public interface ApplicationService {
     ApplicationResponse applyToTeam(String teamId, String userId, ApplyRequest request);
     PagedResponse<ApplicationSummaryResponse> getTeamApplications(String teamId, String userId, ApplicationStatus status, int page, int size, String sortBy, String sortDirection);
     ApplicationResponse acceptApplication(String applicationId, String userId);
+    ApplicationResponse rejectApplication(String applicationId, String userId);
 }

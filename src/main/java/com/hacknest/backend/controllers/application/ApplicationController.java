@@ -27,4 +27,13 @@ public class ApplicationController {
         ApplicationResponse response = applicationService.acceptApplication(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Application accepted successfully", response));
     }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> rejectApplication(
+            @PathVariable String id,
+            @AuthenticationPrincipal User user) {
+        
+        ApplicationResponse response = applicationService.rejectApplication(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Application rejected successfully", response));
+    }
 }
