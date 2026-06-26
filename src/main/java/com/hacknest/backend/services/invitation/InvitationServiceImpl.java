@@ -5,6 +5,7 @@ import com.hacknest.backend.dto.invitation.InvitationResponse;
 import com.hacknest.backend.dto.invitation.InvitationSummaryResponse;
 import com.hacknest.backend.dto.invitation.SendInvitationRequest;
 import com.hacknest.backend.enums.InvitationStatus;
+import com.hacknest.backend.enums.TeamStatus;
 import com.hacknest.backend.models.invitation.Invitation;
 import com.hacknest.backend.models.team.RequiredRole;
 import com.hacknest.backend.models.team.Team;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -134,5 +136,84 @@ public class InvitationServiceImpl implements InvitationService {
         });
         
         return PagedResponse.of(summaryPage);
+    }
+
+    @Override
+    @Transactional
+    public InvitationResponse acceptInvitation(String invitationId, String userId) {
+        Invitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Invitation is not in PENDING state");
+        }
+
+        if (!invitation.getReceiverId().equals(userId)) {
+            throw new IllegalArgumentException("Only the receiver can accept the invitation");
+        }
+
+        Team team = teamRepository.findById(invitation.getTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+
+        if (team.getCurrentMemberCount() >= team.getMaxMembers()) {
+            throw new IllegalArgumentException("Team is already full");
+        }
+
+        RequiredRole offeredRole = team.getRequiredRoles().stream()
+                .filter(r -> r.getRoleName().equalsIgnoreCase(invitation.getRoleOffered()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Offered role no longer exists in team"));
+
+        if (offeredRole.getFilledSlots() >= offeredRole.getSlots()) {
+            throw new IllegalArgumentException("Offered role is already filled");
+        }
+
+        // Apply updates
+        invitation.setStatus(InvitationStatus.ACCEPTED);
+        
+        team.getMemberIds().add(invitation.getReceiverId());
+        team.setCurrentMemberCount(team.getCurrentMemberCount() + 1);
+        offeredRole.setFilledSlots(offeredRole.getFilledSlots() + 1);
+        
+        team.setTeamCompletionPercentage(calculateTeamCompletion(team));
+        
+        if (team.getCurrentMemberCount().equals(team.getMaxMembers())) {
+            team.setStatus(TeamStatus.FULL);
+        }
+
+        teamRepository.save(team);
+        Invitation savedInvitation = invitationRepository.save(invitation);
+
+        return InvitationResponse.builder()
+                .id(savedInvitation.getId())
+                .teamId(savedInvitation.getTeamId())
+                .senderId(savedInvitation.getSenderId())
+                .receiverId(savedInvitation.getReceiverId())
+                .roleOffered(savedInvitation.getRoleOffered())
+                .message(savedInvitation.getMessage())
+                .status(savedInvitation.getStatus())
+                .createdAt(savedInvitation.getCreatedAt())
+                .updatedAt(savedInvitation.getUpdatedAt())
+                .build();
+    }
+    
+    private int calculateTeamCompletion(Team team) {
+        if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {
+            return 100;
+        }
+        
+        int totalRequiredSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getSlots() != null ? role.getSlots() : 0)
+                .sum();
+                
+        if (totalRequiredSlots == 0) {
+            return 100;
+        }
+        
+        int totalFilledSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getFilledSlots() != null ? role.getFilledSlots() : 0)
+                .sum();
+                
+        return (int) Math.round(((double) totalFilledSlots / totalRequiredSlots) * 100);
     }
 }
