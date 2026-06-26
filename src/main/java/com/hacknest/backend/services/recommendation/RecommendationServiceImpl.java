@@ -15,6 +15,7 @@ import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.HackathonRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.services.trust.TrustService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -30,6 +31,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final HackathonRepository hackathonRepository;
+    private final TrustService trustService;
 
     @Override
     public List<TeammateRecommendation> getTeammateRecommendations(String teamId, String leaderId) {
@@ -108,7 +110,15 @@ public class RecommendationServiceImpl implements RecommendationService {
                     reasons.add(new RecommendationReason("Profile Completion > 80%", 20));
                 }
                 
-                // 5. Trust Score (+20) - Future
+                // 5. Trust Score (+20)
+                int trustScore = trustService.calculateTrustScore(user.getId()).getTrustScore();
+                if (trustScore > 0) {
+                    int trustImpact = (int) Math.round((trustScore / 100.0) * 20.0);
+                    if (trustImpact > 0) {
+                        score += trustImpact;
+                        reasons.add(new RecommendationReason("High Trust Score (" + trustScore + "/100)", trustImpact));
+                    }
+                }
             }
 
             if (score > 0) {
@@ -218,6 +228,16 @@ public class RecommendationServiceImpl implements RecommendationService {
                 if (hackathonDomains.stream().anyMatch(userInterests::contains)) {
                     score += 20;
                     reasons.add(new RecommendationReason("Hackathon Domain matches Interests", 20));
+                }
+            }
+
+            // 6. Team Trust Score (+20)
+            int leaderTrust = trustService.calculateTrustScore(team.getLeaderId()).getTrustScore();
+            if (leaderTrust > 0) {
+                int trustImpact = (int) Math.round((leaderTrust / 100.0) * 20.0);
+                if (trustImpact > 0) {
+                    score += trustImpact;
+                    reasons.add(new RecommendationReason("Highly Trusted Team Leader (" + leaderTrust + "/100)", trustImpact));
                 }
             }
 
