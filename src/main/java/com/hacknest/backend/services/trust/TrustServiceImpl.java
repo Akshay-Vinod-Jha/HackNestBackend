@@ -1,5 +1,7 @@
 package com.hacknest.backend.services.trust;
 
+import com.hacknest.backend.dto.trust.TrustReason;
+import com.hacknest.backend.dto.trust.TrustScoreResponse;
 import com.hacknest.backend.enums.ApplicationStatus;
 import com.hacknest.backend.enums.InvitationStatus;
 import com.hacknest.backend.enums.TeamStatus;
@@ -10,10 +12,13 @@ import com.hacknest.backend.repositories.InvitationRepository;
 import com.hacknest.backend.repositories.RatingRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.services.rating.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class TrustServiceImpl implements TrustService {
     private final InvitationRepository invitationRepository;
     private final ApplicationRepository applicationRepository;
     private final TeamRepository teamRepository;
+    private final RatingService ratingService;
 
     @Override
     public int calculateReliabilityScore(String userId) {
@@ -110,5 +116,52 @@ public class TrustServiceImpl implements TrustService {
         int contributionScore = (int) Math.round(peerScore + leadershipScore + participationScore + completedScore);
         
         return Math.max(0, Math.min(contributionScore, 100));
+    }
+
+    @Override
+    public TrustScoreResponse calculateTrustScore(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        List<TrustReason> reasons = new ArrayList<>();
+        double totalScore = 0;
+
+        // 1. Reliability (Max 35)
+        int reliabilityScore = calculateReliabilityScore(userId);
+        double reliabilityImpact = reliabilityScore * 0.35;
+        totalScore += reliabilityImpact;
+        reasons.add(new TrustReason("Reliability Score (" + reliabilityScore + "/100)", (int) Math.round(reliabilityImpact)));
+
+        // 2. Contribution (Max 35)
+        int contributionScore = calculateContributionScore(userId);
+        double contributionImpact = contributionScore * 0.35;
+        totalScore += contributionImpact;
+        reasons.add(new TrustReason("Contribution Score (" + contributionScore + "/100)", (int) Math.round(contributionImpact)));
+
+        // 3. Average Skill Rating (Max 20)
+        Map<String, Double> skillRatings = ratingService.calculateSkillRatings(userId);
+        double overallSkillAvg = 0;
+        if (skillRatings != null && !skillRatings.isEmpty()) {
+            overallSkillAvg = skillRatings.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        }
+        double skillImpact = (overallSkillAvg / 5.0) * 20.0;
+        totalScore += skillImpact;
+        reasons.add(new TrustReason("Average Peer Skill Rating (" + Math.round(overallSkillAvg * 10.0)/10.0 + "/5.0)", (int) Math.round(skillImpact)));
+
+        // 4. Profile Completion (Max 10)
+        double completionImpact = 0;
+        if (user.getProfile() != null && user.getProfile().getProfileCompletionPercentage() != null) {
+            completionImpact = user.getProfile().getProfileCompletionPercentage() * 0.10;
+        }
+        totalScore += completionImpact;
+        reasons.add(new TrustReason("Profile Completion", (int) Math.round(completionImpact)));
+
+        int finalTrustScore = (int) Math.round(totalScore);
+        
+        return TrustScoreResponse.builder()
+                .userId(userId)
+                .trustScore(Math.max(0, Math.min(finalTrustScore, 100)))
+                .reasons(reasons)
+                .build();
     }
 }
