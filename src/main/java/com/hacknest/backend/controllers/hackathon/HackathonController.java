@@ -5,8 +5,10 @@ import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.hackathon.CreateHackathonRequest;
 import com.hacknest.backend.dto.hackathon.HackathonResponse;
 import com.hacknest.backend.dto.hackathon.HackathonSummaryResponse;
+import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.hackathon.HackathonService;
+import com.hacknest.backend.services.team.TeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HackathonController {
 
     private final HackathonService hackathonService;
+    private final TeamService teamService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<HackathonResponse>> createHackathon(
@@ -74,5 +77,17 @@ public class HackathonController {
             country, mode, status, domain, techStack, tag, registrationDeadlineBefore, page, size, sortBy, sortDirection);
             
         return ResponseEntity.ok(ApiResponse.success("Hackathons filtered successfully", response));
+    }
+
+    @GetMapping("/{hackathonId}/teams")
+    public ResponseEntity<ApiResponse<PagedResponse<TeamSummaryResponse>>> getTeamsByHackathon(
+            @PathVariable String hackathonId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        PagedResponse<TeamSummaryResponse> response = teamService.getTeamsByHackathon(hackathonId, page, size, sortBy, sortDirection);
+        return ResponseEntity.ok(ApiResponse.success("Teams fetched successfully", response));
     }
 }

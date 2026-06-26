@@ -1,13 +1,20 @@
 package com.hacknest.backend.services.team;
 
+import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
+import com.hacknest.backend.dto.team.RequiredRoleSummaryDto;
 import com.hacknest.backend.dto.team.TeamResponse;
+import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.enums.TeamStatus;
 import com.hacknest.backend.models.team.RequiredRole;
 import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.HackathonRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -69,6 +76,40 @@ public class TeamServiceImpl implements TeamService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
         return buildTeamResponse(team);
+    }
+
+    @Override
+    public PagedResponse<TeamSummaryResponse> getTeamsByHackathon(String hackathonId, int page, int size, String sortBy, String sortDirection) {
+        hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Hackathon ID"));
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Team> teamPage = teamRepository.findByHackathonId(hackathonId, pageable);
+        
+        Page<TeamSummaryResponse> summaryPage = teamPage.map(team -> {
+            List<RequiredRoleSummaryDto> roles = team.getRequiredRoles().stream()
+                .map(r -> RequiredRoleSummaryDto.builder()
+                        .roleName(r.getRoleName())
+                        .slots(r.getSlots())
+                        .filledSlots(r.getFilledSlots())
+                        .build())
+                .collect(Collectors.toList());
+                
+            return TeamSummaryResponse.builder()
+                .id(team.getId())
+                .name(team.getName())
+                .leaderId(team.getLeaderId())
+                .requiredRoles(roles)
+                .maxMembers(team.getMaxMembers())
+                .currentMemberCount(team.getCurrentMemberCount())
+                .isOpen(team.getIsOpen())
+                .status(team.getStatus())
+                .build();
+        });
+        
+        return PagedResponse.of(summaryPage);
     }
 
     private TeamResponse buildTeamResponse(Team team) {
