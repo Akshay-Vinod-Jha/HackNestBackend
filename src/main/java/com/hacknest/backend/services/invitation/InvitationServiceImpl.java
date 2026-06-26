@@ -196,6 +196,35 @@ public class InvitationServiceImpl implements InvitationService {
                 .updatedAt(savedInvitation.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public InvitationResponse rejectInvitation(String invitationId, String userId) {
+        Invitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Invitation is not in PENDING state");
+        }
+
+        if (!invitation.getReceiverId().equals(userId)) {
+            throw new IllegalArgumentException("Only the receiver can reject the invitation");
+        }
+
+        invitation.setStatus(InvitationStatus.REJECTED);
+        Invitation savedInvitation = invitationRepository.save(invitation);
+
+        return InvitationResponse.builder()
+                .id(savedInvitation.getId())
+                .teamId(savedInvitation.getTeamId())
+                .senderId(savedInvitation.getSenderId())
+                .receiverId(savedInvitation.getReceiverId())
+                .roleOffered(savedInvitation.getRoleOffered())
+                .message(savedInvitation.getMessage())
+                .status(savedInvitation.getStatus())
+                .createdAt(savedInvitation.getCreatedAt())
+                .updatedAt(savedInvitation.getUpdatedAt())
+                .build();
+    }
     
     private int calculateTeamCompletion(Team team) {
         if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {

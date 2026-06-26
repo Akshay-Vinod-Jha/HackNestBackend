@@ -47,4 +47,13 @@ public class InvitationController {
         InvitationResponse response = invitationService.acceptInvitation(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Invitation accepted successfully", response));
     }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<InvitationResponse>> rejectInvitation(
+            @PathVariable String id,
+            @AuthenticationPrincipal User user) {
+        
+        InvitationResponse response = invitationService.rejectInvitation(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Invitation rejected successfully", response));
+    }
 }
