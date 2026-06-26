@@ -1,6 +1,8 @@
 package com.hacknest.backend.services.invitation;
 
+import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.invitation.InvitationResponse;
+import com.hacknest.backend.dto.invitation.InvitationSummaryResponse;
 import com.hacknest.backend.dto.invitation.SendInvitationRequest;
 import com.hacknest.backend.enums.InvitationStatus;
 import com.hacknest.backend.models.invitation.Invitation;
@@ -10,6 +12,10 @@ import com.hacknest.backend.repositories.InvitationRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -91,5 +97,42 @@ public class InvitationServiceImpl implements InvitationService {
                 .createdAt(invitation.getCreatedAt())
                 .updatedAt(invitation.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    public PagedResponse<InvitationSummaryResponse> getMyInvitations(String userId, InvitationStatus status, int page, int size, String sortBy, String sortDirection) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Invitation> invPage;
+        if (status != null) {
+            invPage = invitationRepository.findByReceiverIdAndStatus(userId, status, pageable);
+        } else {
+            invPage = invitationRepository.findByReceiverId(userId, pageable);
+        }
+        
+        Page<InvitationSummaryResponse> summaryPage = invPage.map(inv -> {
+            String teamName = teamRepository.findById(inv.getTeamId())
+                    .map(Team::getName)
+                    .orElse("Unknown Team");
+                    
+            String senderName = userRepository.findById(inv.getSenderId())
+                    .map(com.hacknest.backend.models.User::getFullName)
+                    .orElse("Unknown Sender");
+                    
+            return InvitationSummaryResponse.builder()
+                    .id(inv.getId())
+                    .roleOffered(inv.getRoleOffered())
+                    .status(inv.getStatus())
+                    .createdAt(inv.getCreatedAt())
+                    .teamId(inv.getTeamId())
+                    .teamName(teamName)
+                    .senderId(inv.getSenderId())
+                    .senderName(senderName)
+                    .receiverId(inv.getReceiverId())
+                    .build();
+        });
+        
+        return PagedResponse.of(summaryPage);
     }
 }
