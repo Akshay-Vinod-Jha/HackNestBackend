@@ -117,7 +117,28 @@ public class RatingServiceImpl implements RatingService {
         for (Rating rating : ratings) {
             if (rating.getReliabilityRating() != null) sumReliability += rating.getReliabilityRating();
             if (rating.getContributionRating() != null) sumContribution += rating.getContributionRating();
-            
+        }
+
+        return UserRatingSummaryResponse.builder()
+                .userId(userId)
+                .totalRatings(total)
+                .averageReliability(Math.round((sumReliability / total) * 10.0) / 10.0)
+                .averageContribution(Math.round((sumContribution / total) * 10.0) / 10.0)
+                .averageSkillRatings(calculateSkillRatings(userId))
+                .build();
+    }
+
+    @Override
+    public Map<String, Double> calculateSkillRatings(String userId) {
+        List<Rating> ratings = ratingRepository.findByRatedUserId(userId);
+        
+        if (ratings == null || ratings.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<String, List<Integer>> skillScores = new HashMap<>();
+
+        for (Rating rating : ratings) {
             if (rating.getSkillRatings() != null) {
                 for (SkillRating sr : rating.getSkillRatings()) {
                     skillScores.computeIfAbsent(sr.getSkillName().toLowerCase(), k -> new ArrayList<>()).add(sr.getRating());
@@ -131,12 +152,6 @@ public class RatingServiceImpl implements RatingService {
             avgSkillRatings.put(entry.getKey(), Math.round(avg * 10.0) / 10.0);
         }
 
-        return UserRatingSummaryResponse.builder()
-                .userId(userId)
-                .totalRatings(total)
-                .averageReliability(Math.round((sumReliability / total) * 10.0) / 10.0)
-                .averageContribution(Math.round((sumContribution / total) * 10.0) / 10.0)
-                .averageSkillRatings(avgSkillRatings)
-                .build();
+        return avgSkillRatings;
     }
 }
