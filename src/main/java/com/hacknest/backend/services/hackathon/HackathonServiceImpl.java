@@ -1,11 +1,17 @@
 package com.hacknest.backend.services.hackathon;
 
+import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.hackathon.CreateHackathonRequest;
 import com.hacknest.backend.dto.hackathon.HackathonResponse;
+import com.hacknest.backend.dto.hackathon.HackathonSummaryResponse;
 import com.hacknest.backend.enums.HackathonStatus;
 import com.hacknest.backend.models.hackathon.Hackathon;
 import com.hacknest.backend.repositories.HackathonRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -59,6 +65,31 @@ public class HackathonServiceImpl implements HackathonService {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found"));
         return buildHackathonResponse(hackathon);
+    }
+
+    @Override
+    public PagedResponse<HackathonSummaryResponse> getAllHackathons(int page, int size, String sortBy, String sortDirection) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Hackathon> hackathonPage = hackathonRepository.findAll(pageable);
+        
+        Page<HackathonSummaryResponse> summaryPage = hackathonPage.map(hackathon -> 
+            HackathonSummaryResponse.builder()
+                .id(hackathon.getId())
+                .title(hackathon.getTitle())
+                .organizer(hackathon.getOrganizer())
+                .mode(hackathon.getMode())
+                .status(hackathon.getStatus())
+                .registrationDeadline(hackathon.getRegistrationDeadline())
+                .hackathonStartDate(hackathon.getHackathonStartDate())
+                .country(hackathon.getCountry())
+                .city(hackathon.getCity())
+                .tags(hackathon.getTags())
+                .build()
+        );
+        
+        return PagedResponse.of(summaryPage);
     }
 
     private HackathonResponse buildHackathonResponse(Hackathon hackathon) {
