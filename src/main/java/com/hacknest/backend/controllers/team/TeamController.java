@@ -10,11 +10,13 @@ import com.hacknest.backend.dto.invitation.SendInvitationRequest;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
 import com.hacknest.backend.dto.team.TeamResponse;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
+import com.hacknest.backend.dto.team.TeamAnalysisResponse;
 import com.hacknest.backend.enums.ApplicationStatus;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.application.ApplicationService;
 import com.hacknest.backend.services.invitation.InvitationService;
 import com.hacknest.backend.services.team.TeamService;
+import com.hacknest.backend.services.team.TeamAnalysisService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ public class TeamController {
     private final TeamService teamService;
     private final ApplicationService applicationService;
     private final InvitationService invitationService;
+    private final TeamAnalysisService teamAnalysisService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TeamResponse>> createTeam(
@@ -107,5 +110,11 @@ public class TeamController {
         
         InvitationResponse response = invitationService.sendInvitation(teamId, user.getId(), request);
         return new ResponseEntity<>(ApiResponse.success("Invitation sent successfully", response), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/analysis")
+    public ResponseEntity<ApiResponse<TeamAnalysisResponse>> analyzeTeam(@PathVariable String id) {
+        TeamAnalysisResponse response = teamAnalysisService.analyzeTeam(id);
+        return ResponseEntity.ok(ApiResponse.success("Team analysis completed successfully", response));
     }
 }
