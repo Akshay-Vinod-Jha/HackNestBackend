@@ -3,6 +3,7 @@ package com.hacknest.backend.services.rating;
 import com.hacknest.backend.dto.rating.CreateRatingRequest;
 import com.hacknest.backend.dto.rating.RatingResponse;
 import com.hacknest.backend.dto.rating.SkillRatingRequest;
+import com.hacknest.backend.dto.rating.UserRatingSummaryResponse;
 import com.hacknest.backend.enums.HackathonStatus;
 import com.hacknest.backend.models.hackathon.Hackathon;
 import com.hacknest.backend.models.rating.Rating;
@@ -15,7 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -88,6 +91,52 @@ public class RatingServiceImpl implements RatingService {
                 .contributionRating(savedRating.getContributionRating())
                 .comment(savedRating.getComment())
                 .createdAt(savedRating.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    public UserRatingSummaryResponse getUserRatingSummary(String userId) {
+        List<Rating> ratings = ratingRepository.findByRatedUserId(userId);
+        
+        if (ratings == null || ratings.isEmpty()) {
+            return UserRatingSummaryResponse.builder()
+                    .userId(userId)
+                    .totalRatings(0)
+                    .averageReliability(0.0)
+                    .averageContribution(0.0)
+                    .averageSkillRatings(new HashMap<>())
+                    .build();
+        }
+
+        int total = ratings.size();
+        double sumReliability = 0;
+        double sumContribution = 0;
+        
+        Map<String, List<Integer>> skillScores = new HashMap<>();
+
+        for (Rating rating : ratings) {
+            if (rating.getReliabilityRating() != null) sumReliability += rating.getReliabilityRating();
+            if (rating.getContributionRating() != null) sumContribution += rating.getContributionRating();
+            
+            if (rating.getSkillRatings() != null) {
+                for (SkillRating sr : rating.getSkillRatings()) {
+                    skillScores.computeIfAbsent(sr.getSkillName().toLowerCase(), k -> new ArrayList<>()).add(sr.getRating());
+                }
+            }
+        }
+
+        Map<String, Double> avgSkillRatings = new HashMap<>();
+        for (Map.Entry<String, List<Integer>> entry : skillScores.entrySet()) {
+            double avg = entry.getValue().stream().mapToInt(Integer::intValue).average().orElse(0.0);
+            avgSkillRatings.put(entry.getKey(), Math.round(avg * 10.0) / 10.0);
+        }
+
+        return UserRatingSummaryResponse.builder()
+                .userId(userId)
+                .totalRatings(total)
+                .averageReliability(Math.round((sumReliability / total) * 10.0) / 10.0)
+                .averageContribution(Math.round((sumContribution / total) * 10.0) / 10.0)
+                .averageSkillRatings(avgSkillRatings)
                 .build();
     }
 }

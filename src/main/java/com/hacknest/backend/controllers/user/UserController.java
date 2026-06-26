@@ -2,12 +2,15 @@ package com.hacknest.backend.controllers.user;
 
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.common.PagedResponse;
+import com.hacknest.backend.dto.rating.UserRatingSummaryResponse;
 import com.hacknest.backend.dto.user.UserSummaryResponse;
 import com.hacknest.backend.enums.SkillLevel;
+import com.hacknest.backend.services.rating.RatingService;
 import com.hacknest.backend.services.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +23,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final RatingService ratingService;
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<UserSummaryResponse>>> searchUsers(
@@ -37,5 +41,11 @@ public class UserController {
                 skills, college, graduationYear, profileCompletionMin, skillLevel, page, size, sortBy, sortDirection);
                 
         return ResponseEntity.ok(ApiResponse.success("Users searched successfully", response));
+    }
+
+    @GetMapping("/{id}/ratings")
+    public ResponseEntity<ApiResponse<UserRatingSummaryResponse>> getUserRatingSummary(@PathVariable String id) {
+        UserRatingSummaryResponse response = ratingService.getUserRatingSummary(id);
+        return ResponseEntity.ok(ApiResponse.success("User rating summary retrieved successfully", response));
     }
 }

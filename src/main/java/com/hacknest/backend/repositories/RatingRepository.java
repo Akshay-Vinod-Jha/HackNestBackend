@@ -13,6 +13,8 @@ public interface RatingRepository extends MongoRepository<Rating, String> {
     
     Page<Rating> findByRatedUserId(String ratedUserId, Pageable pageable);
     
+    List<Rating> findByRatedUserId(String ratedUserId);
+    
     List<Rating> findByTeamId(String teamId);
     
     boolean existsByRaterIdAndRatedUserIdAndTeamId(String raterId, String ratedUserId, String teamId);
