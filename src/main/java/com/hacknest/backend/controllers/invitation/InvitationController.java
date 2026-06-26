@@ -10,6 +10,7 @@ import com.hacknest.backend.services.invitation.InvitationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -55,5 +56,14 @@ public class InvitationController {
         
         InvitationResponse response = invitationService.rejectInvitation(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Invitation rejected successfully", response));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> cancelInvitation(
+            @PathVariable String id,
+            @AuthenticationPrincipal User user) {
+        
+        invitationService.cancelInvitation(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Invitation cancelled successfully", null));
     }
 }

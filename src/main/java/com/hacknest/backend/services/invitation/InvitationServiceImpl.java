@@ -225,6 +225,23 @@ public class InvitationServiceImpl implements InvitationService {
                 .updatedAt(savedInvitation.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public void cancelInvitation(String invitationId, String userId) {
+        Invitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+
+        if (!invitation.getSenderId().equals(userId)) {
+            throw new IllegalArgumentException("Only the sender can cancel the invitation");
+        }
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Only PENDING invitations can be cancelled");
+        }
+
+        invitation.setStatus(InvitationStatus.CANCELLED);
+        invitationRepository.save(invitation);
+    }
     
     private int calculateTeamCompletion(Team team) {
         if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {

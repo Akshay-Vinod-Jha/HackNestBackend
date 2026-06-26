@@ -11,4 +11,5 @@ public interface InvitationService {
     PagedResponse<InvitationSummaryResponse> getMyInvitations(String userId, InvitationStatus status, int page, int size, String sortBy, String sortDirection);
     InvitationResponse acceptInvitation(String invitationId, String userId);
     InvitationResponse rejectInvitation(String invitationId, String userId);
+    void cancelInvitation(String invitationId, String userId);
 }
