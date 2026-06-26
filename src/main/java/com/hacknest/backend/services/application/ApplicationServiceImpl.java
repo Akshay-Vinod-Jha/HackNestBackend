@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -129,5 +130,85 @@ public class ApplicationServiceImpl implements ApplicationService {
         });
         
         return PagedResponse.of(summaryPage);
+    }
+
+    @Override
+    @Transactional
+    public ApplicationResponse acceptApplication(String applicationId, String userId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw new IllegalArgumentException("Application is not in PENDING state");
+        }
+
+        Team team = teamRepository.findById(application.getTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+
+        if (!team.getLeaderId().equals(userId)) {
+            throw new IllegalArgumentException("Only the team leader can accept applications");
+        }
+
+        if (team.getCurrentMemberCount() >= team.getMaxMembers()) {
+            throw new IllegalArgumentException("Team is already full");
+        }
+
+        RequiredRole requestedRole = team.getRequiredRoles().stream()
+                .filter(r -> r.getRoleName().equalsIgnoreCase(application.getRoleApplied()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Requested role no longer exists"));
+
+        if (requestedRole.getFilledSlots() >= requestedRole.getSlots()) {
+            throw new IllegalArgumentException("Requested role is already filled");
+        }
+
+        // Apply updates
+        application.setStatus(ApplicationStatus.ACCEPTED);
+        
+        team.getMemberIds().add(application.getApplicantId());
+        team.setCurrentMemberCount(team.getCurrentMemberCount() + 1);
+        requestedRole.setFilledSlots(requestedRole.getFilledSlots() + 1);
+        
+        // Use the team service logic to recalculate completion (we can port the logic here)
+        int completion = calculateTeamCompletion(team);
+        team.setTeamCompletionPercentage(completion);
+        
+        if (team.getCurrentMemberCount().equals(team.getMaxMembers())) {
+            team.setStatus(TeamStatus.FULL);
+        }
+
+        teamRepository.save(team);
+        Application savedApplication = applicationRepository.save(application);
+
+        return ApplicationResponse.builder()
+                .id(savedApplication.getId())
+                .teamId(savedApplication.getTeamId())
+                .applicantId(savedApplication.getApplicantId())
+                .roleApplied(savedApplication.getRoleApplied())
+                .message(savedApplication.getMessage())
+                .status(savedApplication.getStatus())
+                .createdAt(savedApplication.getCreatedAt())
+                .updatedAt(savedApplication.getUpdatedAt())
+                .build();
+    }
+    
+    private int calculateTeamCompletion(Team team) {
+        if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {
+            return 100;
+        }
+        
+        int totalRequiredSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getSlots() != null ? role.getSlots() : 0)
+                .sum();
+                
+        if (totalRequiredSlots == 0) {
+            return 100;
+        }
+        
+        int totalFilledSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getFilledSlots() != null ? role.getFilledSlots() : 0)
+                .sum();
+                
+        return (int) Math.round(((double) totalFilledSlots / totalRequiredSlots) * 100);
     }
 }
