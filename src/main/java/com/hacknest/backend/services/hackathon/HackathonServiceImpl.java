@@ -54,6 +54,13 @@ public class HackathonServiceImpl implements HackathonService {
         return buildHackathonResponse(hackathon);
     }
 
+    @Override
+    public HackathonResponse getHackathonById(String hackathonId) {
+        Hackathon hackathon = hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hackathon not found"));
+        return buildHackathonResponse(hackathon);
+    }
+
     private HackathonResponse buildHackathonResponse(Hackathon hackathon) {
         return HackathonResponse.builder()
                 .id(hackathon.getId())
