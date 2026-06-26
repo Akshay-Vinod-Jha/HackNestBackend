@@ -1,6 +1,7 @@
 package com.hacknest.backend.models;
 
 import com.hacknest.backend.enums.UserRole;
+import com.hacknest.backend.models.profile.Profile;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,6 +33,8 @@ public class User {
 
     @Builder.Default
     private UserRole role = UserRole.USER;
+
+    private Profile profile;
 
     @CreatedDate
     private LocalDateTime createdAt;

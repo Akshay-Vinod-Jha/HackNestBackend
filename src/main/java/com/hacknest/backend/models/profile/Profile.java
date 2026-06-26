@@ -1,0 +1,22 @@
+package com.hacknest.backend.models.profile;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Profile {
+    private String headline;
+    private String bio;
+    private String college;
+    private String degree;
+    private String branch;
+    private Integer graduationYear;
+    private String github;
+    private String linkedin;
+    private Integer profileCompletionPercentage;
+}
