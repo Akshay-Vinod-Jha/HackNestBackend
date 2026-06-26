@@ -1,6 +1,7 @@
 package com.hacknest.backend.controllers.profile;
 
 import com.hacknest.backend.dto.common.ApiResponse;
+import com.hacknest.backend.dto.profile.CompetitionHistoryResponse;
 import com.hacknest.backend.dto.profile.ProfileResponse;
 import com.hacknest.backend.dto.profile.UpdateProfileRequest;
 import com.hacknest.backend.models.User;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -34,5 +37,11 @@ public class ProfileController {
             @Valid @RequestBody UpdateProfileRequest request) {
         ProfileResponse response = profileService.updateMyProfile(user.getId(), request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<CompetitionHistoryResponse>>> getMyHistory(@AuthenticationPrincipal User user) {
+        List<CompetitionHistoryResponse> response = profileService.getCompetitionHistory(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Competition history fetched successfully", response));
     }
 }

@@ -1,16 +1,29 @@
 package com.hacknest.backend.services.profile;
 
 import com.hacknest.backend.dto.profile.*;
+import com.hacknest.backend.dto.profile.*;
+import com.hacknest.backend.dto.hackathon.HackathonSummaryResponse;
+import com.hacknest.backend.dto.team.TeamSummaryResponse;
+import com.hacknest.backend.enums.TeamStatus;
 import com.hacknest.backend.models.User;
+import com.hacknest.backend.models.achievement.Achievement;
+import com.hacknest.backend.models.hackathon.Hackathon;
+import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.models.profile.Experience;
 import com.hacknest.backend.models.profile.PortfolioLink;
 import com.hacknest.backend.models.profile.Profile;
 import com.hacknest.backend.models.profile.Skill;
+import com.hacknest.backend.repositories.AchievementRepository;
+import com.hacknest.backend.repositories.HackathonRepository;
+import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +31,9 @@ import java.util.stream.Collectors;
 public class ProfileServiceImpl implements ProfileService {
 
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
+    private final AchievementRepository achievementRepository;
+    private final HackathonRepository hackathonRepository;
 
     @Override
     public ProfileResponse getMyProfile(String userId) {
@@ -115,6 +131,78 @@ public class ProfileServiceImpl implements ProfileService {
                 .skills(profile != null ? profile.getSkills() : new ArrayList<>())
                 .experience(profile != null ? profile.getExperience() : new ArrayList<>())
                 .portfolioLinks(profile != null ? profile.getPortfolioLinks() : new ArrayList<>())
+                .build();
+    }
+
+    @Override
+    public List<CompetitionHistoryResponse> getCompetitionHistory(String userId) {
+        List<Team> teams = teamRepository.findByLeaderIdOrMemberIdsContaining(userId, userId);
+        List<Achievement> achievements = achievementRepository.findByUserId(userId);
+        
+        Map<String, Achievement> achievementMap = achievements.stream()
+                .filter(a -> a.getTeamId() != null)
+                .collect(Collectors.toMap(Achievement::getTeamId, a -> a, (a1, a2) -> a1));
+
+        List<CompetitionHistoryResponse> history = new ArrayList<>();
+        
+        for (Team team : teams) {
+            Hackathon hackathon = hackathonRepository.findById(team.getHackathonId()).orElse(null);
+            if (hackathon == null) continue;
+            
+            String role = userId.equals(team.getLeaderId()) ? "LEADER" : "MEMBER";
+            Achievement achievement = achievementMap.get(team.getId());
+            
+            String result = "PARTICIPANT";
+            if (achievement != null) {
+                result = achievement.getType().name();
+            } else if (team.getStatus() != TeamStatus.COMPLETED) {
+                result = team.getStatus().name();
+            }
+            
+            LocalDateTime participationDate = hackathon.getHackathonStartDate() != null ? hackathon.getHackathonStartDate() : hackathon.getCreatedAt();
+
+            history.add(CompetitionHistoryResponse.builder()
+                    .hackathon(buildHackathonSummary(hackathon))
+                    .team(buildTeamSummary(team))
+                    .role(role)
+                    .result(result)
+                    .participationDate(participationDate)
+                    .build());
+        }
+        
+        history.sort((h1, h2) -> {
+            if (h1.getParticipationDate() == null) return 1;
+            if (h2.getParticipationDate() == null) return -1;
+            return h2.getParticipationDate().compareTo(h1.getParticipationDate());
+        });
+        
+        return history;
+    }
+
+    private HackathonSummaryResponse buildHackathonSummary(Hackathon h) {
+        return HackathonSummaryResponse.builder()
+                .id(h.getId())
+                .title(h.getTitle())
+                .organizer(h.getOrganizer())
+                .mode(h.getMode())
+                .status(h.getStatus())
+                .registrationDeadline(h.getRegistrationDeadline())
+                .hackathonStartDate(h.getHackathonStartDate())
+                .country(h.getCountry())
+                .city(h.getCity())
+                .tags(h.getTags())
+                .build();
+    }
+
+    private TeamSummaryResponse buildTeamSummary(Team t) {
+        return TeamSummaryResponse.builder()
+                .id(t.getId())
+                .name(t.getName())
+                .leaderId(t.getLeaderId())
+                .maxMembers(t.getMaxMembers())
+                .currentMemberCount(t.getCurrentMemberCount())
+                .isOpen(t.getIsOpen())
+                .status(t.getStatus())
                 .build();
     }
 }
