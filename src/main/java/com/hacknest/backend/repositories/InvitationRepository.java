@@ -14,6 +14,7 @@ public interface InvitationRepository extends MongoRepository<Invitation, String
     List<Invitation> findByReceiverId(String receiverId);
     Page<Invitation> findByReceiverId(String receiverId, Pageable pageable);
     Page<Invitation> findByReceiverIdAndStatus(String receiverId, InvitationStatus status, Pageable pageable);
+    long countByReceiverIdAndStatus(String receiverId, InvitationStatus status);
     List<Invitation> findBySenderId(String senderId);
     boolean existsByTeamIdAndReceiverId(String teamId, String receiverId);
 }

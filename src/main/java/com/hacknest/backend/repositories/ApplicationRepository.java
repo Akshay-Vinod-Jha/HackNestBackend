@@ -14,6 +14,7 @@ public interface ApplicationRepository extends MongoRepository<Application, Stri
     List<Application> findByTeamId(String teamId);
     Page<Application> findByTeamId(String teamId, Pageable pageable);
     Page<Application> findByTeamIdAndStatus(String teamId, ApplicationStatus status, Pageable pageable);
+    long countByApplicantIdAndStatus(String applicantId, ApplicationStatus status);
     List<Application> findByApplicantId(String applicantId);
     boolean existsByTeamIdAndApplicantId(String teamId, String applicantId);
 }
