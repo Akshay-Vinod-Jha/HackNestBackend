@@ -22,6 +22,9 @@ public class Profile {
     private Integer profileCompletionPercentage;
 
     @Builder.Default
+    private List<String> interests = new ArrayList<>();
+
+    @Builder.Default
     private List<Skill> skills = new ArrayList<>();
 
     @Builder.Default

@@ -1,0 +1,32 @@
+package com.hacknest.backend.controllers.recommendation;
+
+import com.hacknest.backend.dto.common.ApiResponse;
+import com.hacknest.backend.dto.recommendation.TeammateRecommendation;
+import com.hacknest.backend.models.User;
+import com.hacknest.backend.services.recommendation.RecommendationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/recommendations")
+@RequiredArgsConstructor
+public class RecommendationController {
+
+    private final RecommendationService recommendationService;
+
+    @GetMapping("/teammates")
+    public ResponseEntity<ApiResponse<List<TeammateRecommendation>>> getTeammateRecommendations(
+            @RequestParam String teamId,
+            @AuthenticationPrincipal User user) {
+        
+        List<TeammateRecommendation> response = recommendationService.getTeammateRecommendations(teamId, user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Teammate recommendations generated successfully", response));
+    }
+}
