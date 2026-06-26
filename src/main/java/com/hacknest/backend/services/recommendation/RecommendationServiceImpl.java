@@ -1,10 +1,12 @@
 package com.hacknest.backend.services.recommendation;
 
+import com.hacknest.backend.dto.recommendation.HackathonRecommendation;
 import com.hacknest.backend.dto.recommendation.RecommendationReason;
 import com.hacknest.backend.dto.recommendation.TeamRecommendation;
 import com.hacknest.backend.dto.recommendation.TeammateRecommendation;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.enums.TeamStatus;
+import com.hacknest.backend.enums.HackathonStatus;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.models.hackathon.Hackathon;
 import com.hacknest.backend.models.profile.Skill;
@@ -239,6 +241,100 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
 
         // Sort descending by match score
+        recommendations.sort((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()));
+
+        return recommendations.stream().limit(20).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HackathonRecommendation> getHackathonRecommendations(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        List<String> userSkills = new ArrayList<>();
+        List<String> userInterests = new ArrayList<>();
+        boolean hasExperience = false;
+
+        if (user.getProfile() != null) {
+            if (user.getProfile().getSkills() != null) {
+                userSkills = user.getProfile().getSkills().stream()
+                        .map(Skill::getName)
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toList());
+            }
+            if (user.getProfile().getInterests() != null) {
+                userInterests = user.getProfile().getInterests().stream()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toList());
+            }
+            if (user.getProfile().getExperience() != null && !user.getProfile().getExperience().isEmpty()) {
+                hasExperience = true;
+            }
+        }
+
+        List<String> combinedUserTraits = new ArrayList<>(userSkills);
+        combinedUserTraits.addAll(userInterests);
+
+        List<Hackathon> allHackathons = hackathonRepository.findAll();
+        List<HackathonRecommendation> recommendations = new ArrayList<>();
+
+        for (Hackathon hackathon : allHackathons) {
+            // Skip closed hackathons
+            if (hackathon.getStatus() == HackathonStatus.COMPLETED || hackathon.getStatus() == HackathonStatus.CANCELLED) {
+                continue;
+            }
+
+            int score = 0;
+            List<RecommendationReason> reasons = new ArrayList<>();
+
+            // 1. Skill Match (+30) - Hackathon Tech Stacks vs User Skills
+            if (hackathon.getTechStacks() != null && !userSkills.isEmpty()) {
+                boolean skillMatch = hackathon.getTechStacks().stream()
+                        .map(String::toLowerCase)
+                        .anyMatch(userSkills::contains);
+                if (skillMatch) {
+                    score += 30;
+                    reasons.add(new RecommendationReason("Hackathon Tech Stack matches your skills", 30));
+                }
+            }
+
+            // 2. Domain Match (+30) - Hackathon Domains vs User Interests
+            if (hackathon.getDomains() != null && !userInterests.isEmpty()) {
+                boolean domainMatch = hackathon.getDomains().stream()
+                        .map(String::toLowerCase)
+                        .anyMatch(userInterests::contains);
+                if (domainMatch) {
+                    score += 30;
+                    reasons.add(new RecommendationReason("Hackathon Domain matches your interests", 30));
+                }
+            }
+
+            // 3. Tags Match (+20) - Hackathon Tags vs Any User Trait
+            if (hackathon.getTags() != null && !combinedUserTraits.isEmpty()) {
+                boolean tagsMatch = hackathon.getTags().stream()
+                        .map(String::toLowerCase)
+                        .anyMatch(combinedUserTraits::contains);
+                if (tagsMatch) {
+                    score += 20;
+                    reasons.add(new RecommendationReason("Hackathon Tags match your profile", 20));
+                }
+            }
+
+            // 4. Previous Participation / Experience (+20)
+            if (hasExperience) {
+                score += 20;
+                reasons.add(new RecommendationReason("Your prior experience is a great fit", 20));
+            }
+
+            if (score > 0) {
+                recommendations.add(HackathonRecommendation.builder()
+                        .hackathon(hackathon)
+                        .matchScore(score)
+                        .reasons(reasons)
+                        .build());
+            }
+        }
+
         recommendations.sort((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()));
 
         return recommendations.stream().limit(20).collect(Collectors.toList());
