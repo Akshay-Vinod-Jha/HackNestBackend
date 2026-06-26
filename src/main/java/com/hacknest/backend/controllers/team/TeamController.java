@@ -5,12 +5,15 @@ import com.hacknest.backend.dto.application.ApplicationSummaryResponse;
 import com.hacknest.backend.dto.application.ApplyRequest;
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.common.PagedResponse;
+import com.hacknest.backend.dto.invitation.InvitationResponse;
+import com.hacknest.backend.dto.invitation.SendInvitationRequest;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
 import com.hacknest.backend.dto.team.TeamResponse;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.enums.ApplicationStatus;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.application.ApplicationService;
+import com.hacknest.backend.services.invitation.InvitationService;
 import com.hacknest.backend.services.team.TeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,7 @@ public class TeamController {
 
     private final TeamService teamService;
     private final ApplicationService applicationService;
+    private final InvitationService invitationService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TeamResponse>> createTeam(
@@ -92,5 +96,15 @@ public class TeamController {
                 teamId, user.getId(), status, page, size, sortBy, sortDirection);
                 
         return ResponseEntity.ok(ApiResponse.success("Applications fetched successfully", response));
+    }
+
+    @PostMapping("/{teamId}/invite")
+    public ResponseEntity<ApiResponse<InvitationResponse>> inviteToTeam(
+            @PathVariable String teamId,
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody SendInvitationRequest request) {
+        
+        InvitationResponse response = invitationService.sendInvitation(teamId, user.getId(), request);
+        return new ResponseEntity<>(ApiResponse.success("Invitation sent successfully", response), HttpStatus.CREATED);
     }
 }
