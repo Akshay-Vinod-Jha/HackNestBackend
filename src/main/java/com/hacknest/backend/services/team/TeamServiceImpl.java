@@ -119,7 +119,11 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
-    public PagedResponse<TeamSummaryResponse> searchTeams(String hackathonId, String status, Boolean isOpen, String requiredSkill, String requiredRole, Integer teamSizeMin, Integer teamSizeMax, int page, int size, String sortBy, String sortDirection) {
+    public PagedResponse<TeamSummaryResponse> searchTeams(
+            String hackathonId, String status, Boolean isOpen, 
+            String requiredSkill, String requiredRole, 
+            Integer teamSizeMin, Integer teamSizeMax, Integer teamCompletionMin,
+            int page, int size, String sortBy, String sortDirection) {
         Query query = new Query();
         
         if (hackathonId != null && !hackathonId.isBlank()) {
@@ -142,6 +146,10 @@ public class TeamServiceImpl implements TeamService {
         }
         if (teamSizeMax != null) {
             query.addCriteria(Criteria.where("maxMembers").lte(teamSizeMax));
+        }
+
+        if (teamCompletionMin != null) {
+            query.addCriteria(Criteria.where("teamCompletionPercentage").gte(teamCompletionMin));
         }
 
         long total = mongoTemplate.count(query, Team.class);

@@ -61,13 +61,14 @@ public class TeamController {
             @RequestParam(required = false) String requiredRole,
             @RequestParam(required = false) Integer teamSizeMin,
             @RequestParam(required = false) Integer teamSizeMax,
+            @RequestParam(required = false) Integer teamCompletionMin,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection) {
         
         PagedResponse<TeamSummaryResponse> response = teamService.searchTeams(
-            hackathonId, status, isOpen, requiredSkill, requiredRole, teamSizeMin, teamSizeMax, page, size, sortBy, sortDirection);
+            hackathonId, status, isOpen, requiredSkill, requiredRole, teamSizeMin, teamSizeMax, teamCompletionMin, page, size, sortBy, sortDirection);
             
         return ResponseEntity.ok(ApiResponse.success("Teams filtered successfully", response));
     }
