@@ -64,6 +64,13 @@ public class TeamServiceImpl implements TeamService {
         return buildTeamResponse(team);
     }
 
+    @Override
+    public TeamResponse getTeamById(String teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+        return buildTeamResponse(team);
+    }
+
     private TeamResponse buildTeamResponse(Team team) {
         return TeamResponse.builder()
                 .id(team.getId())

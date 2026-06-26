@@ -5,4 +5,5 @@ import com.hacknest.backend.dto.team.TeamResponse;
 
 public interface TeamService {
     TeamResponse createTeam(CreateTeamRequest request, String userId);
+    TeamResponse getTeamById(String teamId);
 }
