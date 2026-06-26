@@ -9,8 +9,11 @@ import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.hackathon.HackathonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.time.LocalDateTime;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,5 +54,25 @@ public class HackathonController {
         
         PagedResponse<HackathonSummaryResponse> response = hackathonService.getAllHackathons(page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponse.success("Hackathons fetched successfully", response));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PagedResponse<HackathonSummaryResponse>>> searchHackathons(
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String mode,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String domain,
+            @RequestParam(required = false) String techStack,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime registrationDeadlineBefore,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        PagedResponse<HackathonSummaryResponse> response = hackathonService.searchHackathons(
+            country, mode, status, domain, techStack, tag, registrationDeadlineBefore, page, size, sortBy, sortDirection);
+            
+        return ResponseEntity.ok(ApiResponse.success("Hackathons filtered successfully", response));
     }
 }

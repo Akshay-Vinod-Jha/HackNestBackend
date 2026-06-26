@@ -9,16 +9,24 @@ import com.hacknest.backend.models.hackathon.Hackathon;
 import com.hacknest.backend.repositories.HackathonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class HackathonServiceImpl implements HackathonService {
 
     private final HackathonRepository hackathonRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public HackathonResponse createHackathon(CreateHackathonRequest request, String userId) {
@@ -73,6 +81,59 @@ public class HackathonServiceImpl implements HackathonService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
         Page<Hackathon> hackathonPage = hackathonRepository.findAll(pageable);
+        
+        Page<HackathonSummaryResponse> summaryPage = hackathonPage.map(hackathon -> 
+            HackathonSummaryResponse.builder()
+                .id(hackathon.getId())
+                .title(hackathon.getTitle())
+                .organizer(hackathon.getOrganizer())
+                .mode(hackathon.getMode())
+                .status(hackathon.getStatus())
+                .registrationDeadline(hackathon.getRegistrationDeadline())
+                .hackathonStartDate(hackathon.getHackathonStartDate())
+                .country(hackathon.getCountry())
+                .city(hackathon.getCity())
+                .tags(hackathon.getTags())
+                .build()
+        );
+        
+        return PagedResponse.of(summaryPage);
+    }
+
+    @Override
+    public PagedResponse<HackathonSummaryResponse> searchHackathons(String country, String mode, String status, String domain, String techStack, String tag, LocalDateTime registrationDeadlineBefore, int page, int size, String sortBy, String sortDirection) {
+        Query query = new Query();
+        
+        if (country != null && !country.isBlank()) {
+            query.addCriteria(Criteria.where("country").is(country));
+        }
+        if (mode != null && !mode.isBlank()) {
+            query.addCriteria(Criteria.where("mode").is(mode));
+        }
+        if (status != null && !status.isBlank()) {
+            query.addCriteria(Criteria.where("status").is(status));
+        }
+        if (domain != null && !domain.isBlank()) {
+            query.addCriteria(Criteria.where("domains").is(domain));
+        }
+        if (techStack != null && !techStack.isBlank()) {
+            query.addCriteria(Criteria.where("techStacks").is(techStack));
+        }
+        if (tag != null && !tag.isBlank()) {
+            query.addCriteria(Criteria.where("tags").is(tag));
+        }
+        if (registrationDeadlineBefore != null) {
+            query.addCriteria(Criteria.where("registrationDeadline").lte(registrationDeadlineBefore));
+        }
+
+        long total = mongoTemplate.count(query, Hackathon.class);
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        query.with(pageable);
+        
+        List<Hackathon> hackathons = mongoTemplate.find(query, Hackathon.class);
+        Page<Hackathon> hackathonPage = new PageImpl<>(hackathons, pageable, total);
         
         Page<HackathonSummaryResponse> summaryPage = hackathonPage.map(hackathon -> 
             HackathonSummaryResponse.builder()
