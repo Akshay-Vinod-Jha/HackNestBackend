@@ -1,12 +1,14 @@
 package com.hacknest.backend.controllers.team;
 
 import com.hacknest.backend.dto.application.ApplicationResponse;
+import com.hacknest.backend.dto.application.ApplicationSummaryResponse;
 import com.hacknest.backend.dto.application.ApplyRequest;
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
 import com.hacknest.backend.dto.team.TeamResponse;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
+import com.hacknest.backend.enums.ApplicationStatus;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.application.ApplicationService;
 import com.hacknest.backend.services.team.TeamService;
@@ -74,5 +76,21 @@ public class TeamController {
         
         ApplicationResponse response = applicationService.applyToTeam(teamId, user.getId(), request);
         return new ResponseEntity<>(ApiResponse.success("Application submitted successfully", response), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{teamId}/applications")
+    public ResponseEntity<ApiResponse<PagedResponse<ApplicationSummaryResponse>>> getTeamApplications(
+            @PathVariable String teamId,
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        PagedResponse<ApplicationSummaryResponse> response = applicationService.getTeamApplications(
+                teamId, user.getId(), status, page, size, sortBy, sortDirection);
+                
+        return ResponseEntity.ok(ApiResponse.success("Applications fetched successfully", response));
     }
 }

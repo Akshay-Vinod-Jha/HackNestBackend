@@ -1,7 +1,9 @@
 package com.hacknest.backend.services.application;
 
 import com.hacknest.backend.dto.application.ApplicationResponse;
+import com.hacknest.backend.dto.application.ApplicationSummaryResponse;
 import com.hacknest.backend.dto.application.ApplyRequest;
+import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.enums.ApplicationStatus;
 import com.hacknest.backend.enums.TeamStatus;
 import com.hacknest.backend.models.application.Application;
@@ -9,7 +11,12 @@ import com.hacknest.backend.models.team.RequiredRole;
 import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.ApplicationRepository;
 import com.hacknest.backend.repositories.TeamRepository;
+import com.hacknest.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,6 +27,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final TeamRepository teamRepository;
+    private final UserRepository userRepository;
 
     @Override
     public ApplicationResponse applyToTeam(String teamId, String userId, ApplyRequest request) {
@@ -83,5 +91,43 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .createdAt(application.getCreatedAt())
                 .updatedAt(application.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    public PagedResponse<ApplicationSummaryResponse> getTeamApplications(String teamId, String userId, ApplicationStatus status, int page, int size, String sortBy, String sortDirection) {
+        
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+                
+        if (!team.getLeaderId().equals(userId)) {
+            throw new IllegalArgumentException("Only the team leader can view applications");
+        }
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Application> appPage;
+        if (status != null) {
+            appPage = applicationRepository.findByTeamIdAndStatus(teamId, status, pageable);
+        } else {
+            appPage = applicationRepository.findByTeamId(teamId, pageable);
+        }
+        
+        Page<ApplicationSummaryResponse> summaryPage = appPage.map(app -> {
+            String applicantName = userRepository.findById(app.getApplicantId())
+                    .map(user -> user.getFullName())
+                    .orElse("Unknown User");
+                    
+            return ApplicationSummaryResponse.builder()
+                    .id(app.getId())
+                    .roleApplied(app.getRoleApplied())
+                    .status(app.getStatus())
+                    .createdAt(app.getCreatedAt())
+                    .applicantId(app.getApplicantId())
+                    .applicantName(applicantName)
+                    .build();
+        });
+        
+        return PagedResponse.of(summaryPage);
     }
 }
