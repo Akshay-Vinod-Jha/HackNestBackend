@@ -1,6 +1,7 @@
 package com.hacknest.backend.controllers.recommendation;
 
 import com.hacknest.backend.dto.common.ApiResponse;
+import com.hacknest.backend.dto.recommendation.TeamRecommendation;
 import com.hacknest.backend.dto.recommendation.TeammateRecommendation;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.recommendation.RecommendationService;
@@ -28,5 +29,13 @@ public class RecommendationController {
         
         List<TeammateRecommendation> response = recommendationService.getTeammateRecommendations(teamId, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Teammate recommendations generated successfully", response));
+    }
+
+    @GetMapping("/teams")
+    public ResponseEntity<ApiResponse<List<TeamRecommendation>>> getTeamRecommendations(
+            @AuthenticationPrincipal User user) {
+        
+        List<TeamRecommendation> response = recommendationService.getTeamRecommendations(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Team recommendations generated successfully", response));
     }
 }
