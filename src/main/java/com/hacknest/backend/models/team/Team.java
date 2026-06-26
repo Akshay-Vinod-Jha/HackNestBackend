@@ -34,7 +34,7 @@ public class Team {
     private String leaderId;
     
     private List<String> memberIds;
-    private List<String> requiredRoles;
+    private List<RequiredRole> requiredRoles;
     private List<String> requiredSkills;
     
     private Integer maxMembers;
