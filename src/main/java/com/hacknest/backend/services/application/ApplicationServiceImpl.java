@@ -222,6 +222,23 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .updatedAt(savedApplication.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public void withdrawApplication(String applicationId, String userId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (!application.getApplicantId().equals(userId)) {
+            throw new IllegalArgumentException("Only the applicant can withdraw their application");
+        }
+
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw new IllegalArgumentException("Only PENDING applications can be withdrawn");
+        }
+
+        application.setStatus(ApplicationStatus.WITHDRAWN);
+        applicationRepository.save(application);
+    }
     
     private int calculateTeamCompletion(Team team) {
         if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {
