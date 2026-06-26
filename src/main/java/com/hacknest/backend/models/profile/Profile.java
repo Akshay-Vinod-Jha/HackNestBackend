@@ -25,4 +25,7 @@ public class Profile {
 
     @Builder.Default
     private List<Skill> skills = new ArrayList<>();
+
+    @Builder.Default
+    private List<Experience> experience = new ArrayList<>();
 }
