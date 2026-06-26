@@ -3,6 +3,7 @@ package com.hacknest.backend.controllers.profile;
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.profile.CompetitionHistoryResponse;
 import com.hacknest.backend.dto.profile.ProfileResponse;
+import com.hacknest.backend.dto.profile.TimelineEvent;
 import com.hacknest.backend.dto.profile.UpdateProfileRequest;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.profile.ProfileService;
@@ -43,5 +44,11 @@ public class ProfileController {
     public ResponseEntity<ApiResponse<List<CompetitionHistoryResponse>>> getMyHistory(@AuthenticationPrincipal User user) {
         List<CompetitionHistoryResponse> response = profileService.getCompetitionHistory(user.getId());
         return ResponseEntity.ok(ApiResponse.success("Competition history fetched successfully", response));
+    }
+
+    @GetMapping("/timeline")
+    public ResponseEntity<ApiResponse<List<TimelineEvent>>> getMyTimeline(@AuthenticationPrincipal User user) {
+        List<TimelineEvent> response = profileService.getTimeline(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("User timeline fetched successfully", response));
     }
 }

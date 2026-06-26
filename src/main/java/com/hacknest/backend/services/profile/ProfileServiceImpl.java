@@ -205,4 +205,77 @@ public class ProfileServiceImpl implements ProfileService {
                 .status(t.getStatus())
                 .build();
     }
+
+    @Override
+    public List<TimelineEvent> getTimeline(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        List<TimelineEvent> events = new ArrayList<>();
+        
+        // 1. Joined Platform
+        if (user.getCreatedAt() != null) {
+            events.add(TimelineEvent.builder()
+                    .eventType("JOINED_PLATFORM")
+                    .title("Joined HackNest")
+                    .description("Welcome to the community!")
+                    .date(user.getCreatedAt())
+                    .build());
+        }
+
+        // 2. Teams (Joined Team, Became Leader, Participated Hackathon)
+        List<Team> teams = teamRepository.findByLeaderIdOrMemberIdsContaining(userId, userId);
+        for (Team team : teams) {
+            boolean isLeader = userId.equals(team.getLeaderId());
+            
+            if (isLeader) {
+                events.add(TimelineEvent.builder()
+                        .eventType("BECAME_LEADER")
+                        .title("Became Team Leader")
+                        .description("Took charge of team: " + team.getName())
+                        .date(team.getCreatedAt() != null ? team.getCreatedAt() : LocalDateTime.now())
+                        .build());
+            } else {
+                events.add(TimelineEvent.builder()
+                        .eventType("JOINED_TEAM")
+                        .title("Joined Team")
+                        .description("Joined team: " + team.getName())
+                        .date(team.getCreatedAt() != null ? team.getCreatedAt() : LocalDateTime.now())
+                        .build());
+            }
+            
+            // Hackathon Participation
+            if (team.getHackathonId() != null) {
+                Hackathon hackathon = hackathonRepository.findById(team.getHackathonId()).orElse(null);
+                if (hackathon != null) {
+                    events.add(TimelineEvent.builder()
+                            .eventType("PARTICIPATED_HACKATHON")
+                            .title("Participated in " + hackathon.getTitle())
+                            .description("Competed with team: " + team.getName())
+                            .date(hackathon.getHackathonStartDate() != null ? hackathon.getHackathonStartDate() : hackathon.getCreatedAt())
+                            .build());
+                }
+            }
+        }
+        
+        // 3. Achievements
+        List<Achievement> achievements = achievementRepository.findByUserId(userId);
+        for (Achievement achievement : achievements) {
+            events.add(TimelineEvent.builder()
+                    .eventType("ACHIEVEMENT_WON")
+                    .title("Earned " + achievement.getType().name())
+                    .description(achievement.getTitle() != null ? achievement.getTitle() : "Achievement unlocked")
+                    .date(achievement.getAchievedAt() != null ? achievement.getAchievedAt() : LocalDateTime.now())
+                    .build());
+        }
+        
+        // Sort descending
+        events.sort((e1, e2) -> {
+            if (e1.getDate() == null) return 1;
+            if (e2.getDate() == null) return -1;
+            return e2.getDate().compareTo(e1.getDate());
+        });
+        
+        return events;
+    }
 }
