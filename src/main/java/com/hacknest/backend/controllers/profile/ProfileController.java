@@ -2,6 +2,7 @@ package com.hacknest.backend.controllers.profile;
 
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.profile.CompetitionHistoryResponse;
+import com.hacknest.backend.dto.profile.ProfileAnalyticsResponse;
 import com.hacknest.backend.dto.profile.ProfileResponse;
 import com.hacknest.backend.dto.profile.TimelineEvent;
 import com.hacknest.backend.dto.profile.UpdateProfileRequest;
@@ -50,5 +51,11 @@ public class ProfileController {
     public ResponseEntity<ApiResponse<List<TimelineEvent>>> getMyTimeline(@AuthenticationPrincipal User user) {
         List<TimelineEvent> response = profileService.getTimeline(user.getId());
         return ResponseEntity.ok(ApiResponse.success("User timeline fetched successfully", response));
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<ProfileAnalyticsResponse>> getMyAnalytics(@AuthenticationPrincipal User user) {
+        ProfileAnalyticsResponse response = profileService.getAnalytics(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Profile analytics fetched successfully", response));
     }
 }

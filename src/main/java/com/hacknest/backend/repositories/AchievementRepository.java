@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface AchievementRepository extends MongoRepository<Achievement, String> {
     List<Achievement> findByUserId(String userId);
+    long countByUserId(String userId);
     List<Achievement> findByHackathonId(String hackathonId);
 }

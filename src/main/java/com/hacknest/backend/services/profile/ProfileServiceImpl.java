@@ -4,6 +4,8 @@ import com.hacknest.backend.dto.profile.*;
 import com.hacknest.backend.dto.profile.*;
 import com.hacknest.backend.dto.hackathon.HackathonSummaryResponse;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
+import com.hacknest.backend.enums.ApplicationStatus;
+import com.hacknest.backend.enums.InvitationStatus;
 import com.hacknest.backend.enums.TeamStatus;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.models.achievement.Achievement;
@@ -14,9 +16,12 @@ import com.hacknest.backend.models.profile.PortfolioLink;
 import com.hacknest.backend.models.profile.Profile;
 import com.hacknest.backend.models.profile.Skill;
 import com.hacknest.backend.repositories.AchievementRepository;
+import com.hacknest.backend.repositories.ApplicationRepository;
 import com.hacknest.backend.repositories.HackathonRepository;
+import com.hacknest.backend.repositories.InvitationRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.services.trust.TrustService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +39,9 @@ public class ProfileServiceImpl implements ProfileService {
     private final TeamRepository teamRepository;
     private final AchievementRepository achievementRepository;
     private final HackathonRepository hackathonRepository;
+    private final ApplicationRepository applicationRepository;
+    private final InvitationRepository invitationRepository;
+    private final TrustService trustService;
 
     @Override
     public ProfileResponse getMyProfile(String userId) {
@@ -277,5 +285,35 @@ public class ProfileServiceImpl implements ProfileService {
         });
         
         return events;
+    }
+
+    @Override
+    public ProfileAnalyticsResponse getAnalytics(String userId) {
+        long totalTeamsLed = teamRepository.countByLeaderId(userId);
+        long totalTeamsJoined = teamRepository.countByMemberIdsContains(userId);
+        long totalHackathons = totalTeamsLed + totalTeamsJoined;
+        
+        long totalApplications = applicationRepository.countByApplicantId(userId);
+        long acceptedApplications = applicationRepository.countByApplicantIdAndStatus(userId, ApplicationStatus.ACCEPTED);
+        
+        long totalInvitations = invitationRepository.countByReceiverId(userId);
+        long acceptedInvitations = invitationRepository.countByReceiverIdAndStatus(userId, InvitationStatus.ACCEPTED);
+        
+        long totalAchievements = achievementRepository.countByUserId(userId);
+        
+        int trustScore = trustService.calculateTrustScore(userId).getTrustScore();
+
+        return ProfileAnalyticsResponse.builder()
+                .userId(userId)
+                .totalHackathons(totalHackathons)
+                .totalTeamsJoined(totalTeamsJoined)
+                .totalTeamsLed(totalTeamsLed)
+                .totalApplications(totalApplications)
+                .acceptedApplications(acceptedApplications)
+                .totalInvitations(totalInvitations)
+                .acceptedInvitations(acceptedInvitations)
+                .totalAchievements(totalAchievements)
+                .trustScore(trustScore)
+                .build();
     }
 }
