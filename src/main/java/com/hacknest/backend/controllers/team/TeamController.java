@@ -1,11 +1,14 @@
 package com.hacknest.backend.controllers.team;
 
+import com.hacknest.backend.dto.application.ApplicationResponse;
+import com.hacknest.backend.dto.application.ApplyRequest;
 import com.hacknest.backend.dto.common.ApiResponse;
 import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
 import com.hacknest.backend.dto.team.TeamResponse;
 import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.models.User;
+import com.hacknest.backend.services.application.ApplicationService;
 import com.hacknest.backend.services.team.TeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeamController {
 
     private final TeamService teamService;
+    private final ApplicationService applicationService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TeamResponse>> createTeam(
@@ -60,5 +64,15 @@ public class TeamController {
             hackathonId, status, isOpen, requiredSkill, requiredRole, teamSizeMin, teamSizeMax, page, size, sortBy, sortDirection);
             
         return ResponseEntity.ok(ApiResponse.success("Teams filtered successfully", response));
+    }
+
+    @PostMapping("/{teamId}/apply")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> applyToTeam(
+            @PathVariable String teamId,
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody ApplyRequest request) {
+        
+        ApplicationResponse response = applicationService.applyToTeam(teamId, user.getId(), request);
+        return new ResponseEntity<>(ApiResponse.success("Application submitted successfully", response), HttpStatus.CREATED);
     }
 }
