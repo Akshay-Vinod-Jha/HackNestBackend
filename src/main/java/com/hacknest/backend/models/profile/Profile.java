@@ -19,8 +19,6 @@ public class Profile {
     private String degree;
     private String branch;
     private Integer graduationYear;
-    private String github;
-    private String linkedin;
     private Integer profileCompletionPercentage;
 
     @Builder.Default
@@ -28,4 +26,7 @@ public class Profile {
 
     @Builder.Default
     private List<Experience> experience = new ArrayList<>();
+
+    @Builder.Default
+    private List<PortfolioLink> portfolioLinks = new ArrayList<>();
 }
