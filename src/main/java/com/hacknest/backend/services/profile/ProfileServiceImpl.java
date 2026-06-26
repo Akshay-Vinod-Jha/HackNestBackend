@@ -78,18 +78,21 @@ public class ProfileServiceImpl implements ProfileService {
             ).collect(Collectors.toList()));
         }
 
-        profile.setProfileCompletionPercentage(calculateCompletion(profile));
+        profile.setProfileCompletionPercentage(calculateProfileCompletion(profile));
 
         user = userRepository.save(user);
 
         return buildProfileResponse(user);
     }
 
-    private Integer calculateCompletion(Profile profile) {
+    private Integer calculateProfileCompletion(Profile profile) {
         int score = 0;
         if (profile.getHeadline() != null && !profile.getHeadline().isBlank()) score += 10;
         if (profile.getBio() != null && !profile.getBio().isBlank()) score += 10;
-        if (profile.getCollege() != null && !profile.getCollege().isBlank()) score += 20;
+        if (profile.getCollege() != null && !profile.getCollege().isBlank()) score += 5;
+        if (profile.getDegree() != null && !profile.getDegree().isBlank()) score += 5;
+        if (profile.getBranch() != null && !profile.getBranch().isBlank()) score += 5;
+        if (profile.getGraduationYear() != null) score += 5;
         if (profile.getSkills() != null && !profile.getSkills().isEmpty()) score += 20;
         if (profile.getExperience() != null && !profile.getExperience().isEmpty()) score += 20;
         if (profile.getPortfolioLinks() != null && !profile.getPortfolioLinks().isEmpty()) score += 20;
