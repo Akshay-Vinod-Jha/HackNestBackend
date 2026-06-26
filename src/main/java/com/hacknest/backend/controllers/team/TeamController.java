@@ -1,8 +1,10 @@
 package com.hacknest.backend.controllers.team;
 
 import com.hacknest.backend.dto.common.ApiResponse;
+import com.hacknest.backend.dto.common.PagedResponse;
 import com.hacknest.backend.dto.team.CreateTeamRequest;
 import com.hacknest.backend.dto.team.TeamResponse;
+import com.hacknest.backend.dto.team.TeamSummaryResponse;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.services.team.TeamService;
 import jakarta.validation.Valid;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,5 +40,25 @@ public class TeamController {
     public ResponseEntity<ApiResponse<TeamResponse>> getTeamById(@PathVariable String id) {
         TeamResponse response = teamService.getTeamById(id);
         return ResponseEntity.ok(ApiResponse.success("Team fetched successfully", response));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PagedResponse<TeamSummaryResponse>>> searchTeams(
+            @RequestParam(required = false) String hackathonId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean isOpen,
+            @RequestParam(required = false) String requiredSkill,
+            @RequestParam(required = false) String requiredRole,
+            @RequestParam(required = false) Integer teamSizeMin,
+            @RequestParam(required = false) Integer teamSizeMax,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        PagedResponse<TeamSummaryResponse> response = teamService.searchTeams(
+            hackathonId, status, isOpen, requiredSkill, requiredRole, teamSizeMin, teamSizeMax, page, size, sortBy, sortDirection);
+            
+        return ResponseEntity.ok(ApiResponse.success("Teams filtered successfully", response));
     }
 }

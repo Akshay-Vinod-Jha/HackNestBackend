@@ -9,4 +9,5 @@ public interface TeamService {
     TeamResponse createTeam(CreateTeamRequest request, String userId);
     TeamResponse getTeamById(String teamId);
     PagedResponse<TeamSummaryResponse> getTeamsByHackathon(String hackathonId, int page, int size, String sortBy, String sortDirection);
+    PagedResponse<TeamSummaryResponse> searchTeams(String hackathonId, String status, Boolean isOpen, String requiredSkill, String requiredRole, Integer teamSizeMin, Integer teamSizeMax, int page, int size, String sortBy, String sortDirection);
 }

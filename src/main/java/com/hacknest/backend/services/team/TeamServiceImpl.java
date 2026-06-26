@@ -12,9 +12,13 @@ import com.hacknest.backend.repositories.HackathonRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -27,6 +31,7 @@ public class TeamServiceImpl implements TeamService {
 
     private final TeamRepository teamRepository;
     private final HackathonRepository hackathonRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public TeamResponse createTeam(CreateTeamRequest request, String userId) {
@@ -87,6 +92,65 @@ public class TeamServiceImpl implements TeamService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
         Page<Team> teamPage = teamRepository.findByHackathonId(hackathonId, pageable);
+        
+        Page<TeamSummaryResponse> summaryPage = teamPage.map(team -> {
+            List<RequiredRoleSummaryDto> roles = team.getRequiredRoles().stream()
+                .map(r -> RequiredRoleSummaryDto.builder()
+                        .roleName(r.getRoleName())
+                        .slots(r.getSlots())
+                        .filledSlots(r.getFilledSlots())
+                        .build())
+                .collect(Collectors.toList());
+                
+            return TeamSummaryResponse.builder()
+                .id(team.getId())
+                .name(team.getName())
+                .leaderId(team.getLeaderId())
+                .requiredRoles(roles)
+                .maxMembers(team.getMaxMembers())
+                .currentMemberCount(team.getCurrentMemberCount())
+                .isOpen(team.getIsOpen())
+                .status(team.getStatus())
+                .build();
+        });
+        
+        return PagedResponse.of(summaryPage);
+    }
+
+    @Override
+    public PagedResponse<TeamSummaryResponse> searchTeams(String hackathonId, String status, Boolean isOpen, String requiredSkill, String requiredRole, Integer teamSizeMin, Integer teamSizeMax, int page, int size, String sortBy, String sortDirection) {
+        Query query = new Query();
+        
+        if (hackathonId != null && !hackathonId.isBlank()) {
+            query.addCriteria(Criteria.where("hackathonId").is(hackathonId));
+        }
+        if (status != null && !status.isBlank()) {
+            query.addCriteria(Criteria.where("status").is(status));
+        }
+        if (isOpen != null) {
+            query.addCriteria(Criteria.where("isOpen").is(isOpen));
+        }
+        if (requiredSkill != null && !requiredSkill.isBlank()) {
+            query.addCriteria(Criteria.where("requiredSkills").is(requiredSkill));
+        }
+        if (requiredRole != null && !requiredRole.isBlank()) {
+            query.addCriteria(Criteria.where("requiredRoles.roleName").is(requiredRole));
+        }
+        if (teamSizeMin != null) {
+            query.addCriteria(Criteria.where("maxMembers").gte(teamSizeMin));
+        }
+        if (teamSizeMax != null) {
+            query.addCriteria(Criteria.where("maxMembers").lte(teamSizeMax));
+        }
+
+        long total = mongoTemplate.count(query, Team.class);
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        query.with(pageable);
+        
+        List<Team> teams = mongoTemplate.find(query, Team.class);
+        Page<Team> teamPage = new PageImpl<>(teams, pageable, total);
         
         Page<TeamSummaryResponse> summaryPage = teamPage.map(team -> {
             List<RequiredRoleSummaryDto> roles = team.getRequiredRoles().stream()
