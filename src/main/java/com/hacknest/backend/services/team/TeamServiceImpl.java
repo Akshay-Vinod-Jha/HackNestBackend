@@ -68,8 +68,9 @@ public class TeamServiceImpl implements TeamService {
                 .currentMemberCount(1)
                 .isOpen(true)
                 .status(TeamStatus.RECRUITING)
-                .teamCompletionPercentage(0)
                 .build();
+
+        team.setTeamCompletionPercentage(calculateTeamCompletion(team));
 
         team = teamRepository.save(team);
 
@@ -174,6 +175,26 @@ public class TeamServiceImpl implements TeamService {
         });
         
         return PagedResponse.of(summaryPage);
+    }
+
+    private int calculateTeamCompletion(Team team) {
+        if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {
+            return 100;
+        }
+        
+        int totalRequiredSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getSlots() != null ? role.getSlots() : 0)
+                .sum();
+                
+        if (totalRequiredSlots == 0) {
+            return 100;
+        }
+        
+        int totalFilledSlots = team.getRequiredRoles().stream()
+                .mapToInt(role -> role.getFilledSlots() != null ? role.getFilledSlots() : 0)
+                .sum();
+                
+        return (int) Math.round(((double) totalFilledSlots / totalRequiredSlots) * 100);
     }
 
     private TeamResponse buildTeamResponse(Team team) {
