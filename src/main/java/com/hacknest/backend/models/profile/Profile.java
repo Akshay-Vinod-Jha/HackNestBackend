@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,4 +22,7 @@ public class Profile {
     private String github;
     private String linkedin;
     private Integer profileCompletionPercentage;
+
+    @Builder.Default
+    private List<Skill> skills = new ArrayList<>();
 }
