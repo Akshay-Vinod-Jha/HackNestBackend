@@ -7,6 +7,7 @@ import com.hacknest.backend.dto.auth.UserSummaryResponse;
 import com.hacknest.backend.enums.UserRole;
 import com.hacknest.backend.models.User;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -40,9 +42,11 @@ public class AuthServiceImpl implements AuthService {
                 .role(user.getRole().name())
                 .build();
 
+        String token = jwtService.generateToken(user);
+
         return AuthResponse.builder()
-                .token(null) // JWT not yet implemented
-                .type(null)
+                .token(token)
+                .type("Bearer")
                 .user(summary)
                 .build();
     }
@@ -63,9 +67,11 @@ public class AuthServiceImpl implements AuthService {
                 .role(user.getRole().name())
                 .build();
 
+        String token = jwtService.generateToken(user);
+
         return AuthResponse.builder()
-                .token(null) // JWT not yet implemented
-                .type(null)
+                .token(token)
+                .type("Bearer")
                 .user(summary)
                 .build();
     }
