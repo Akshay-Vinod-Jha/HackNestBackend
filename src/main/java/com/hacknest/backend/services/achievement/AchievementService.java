@@ -10,6 +10,7 @@ import com.hacknest.backend.models.rating.Rating;
 import com.hacknest.backend.models.rating.SkillRating;
 import com.hacknest.backend.repositories.AchievementRepository;
 import com.hacknest.backend.repositories.RatingRepository;
+import com.hacknest.backend.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,11 +27,12 @@ public class AchievementService {
 
     private final AchievementRepository achievementRepository;
     private final RatingRepository ratingRepository;
+    private final TeamRepository teamRepository;
 
     public TrophyRoomResponse getTrophyRoom(String userId) {
         List<Achievement> achievements = achievementRepository.findByUserId(userId);
         
-        MilestoneDto milestones = calculateMilestones(achievements);
+        MilestoneDto milestones = calculateMilestones(userId, achievements);
         List<CertificateDto> certificates = extractCertificates(achievements);
         List<BadgeDto> badges = generateSkillBadges(userId);
         
@@ -41,12 +43,12 @@ public class AchievementService {
                 .build();
     }
 
-    private MilestoneDto calculateMilestones(List<Achievement> achievements) {
-        long participationCount = achievements.stream().filter(a -> a.getType() == AchievementType.PARTICIPATION).count();
+    private MilestoneDto calculateMilestones(String userId, List<Achievement> achievements) {
+        long participationCount = teamRepository.countByMemberIdsContains(userId);
         long winnerCount = achievements.stream().filter(a -> a.getType() == AchievementType.WINNER).count();
         long runnerUpCount = achievements.stream().filter(a -> a.getType() == AchievementType.RUNNER_UP).count();
         long top10Count = achievements.stream().filter(a -> a.getType() == AchievementType.TOP_10).count();
-        long teamLeaderCount = achievements.stream().filter(a -> a.getType() == AchievementType.TEAM_LEADER).count();
+        long teamLeaderCount = teamRepository.countByLeaderId(userId);
         long specialMentionCount = achievements.stream().filter(a -> a.getType() == AchievementType.SPECIAL_MENTION).count();
         
         return MilestoneDto.builder()
@@ -86,6 +88,30 @@ public class AchievementService {
         }
         
         List<BadgeDto> badges = new ArrayList<>();
+        
+        // Dynamic Onboarding Badges
+        badges.add(BadgeDto.builder()
+                .title("HackNest Pioneer")
+                .isEarned(true) // Always earned
+                .level(1)
+                .colorClass("from-blue-600 to-cyan-500")
+                .build());
+                
+        long joinedTeams = teamRepository.countByMemberIdsContains(userId);
+        badges.add(BadgeDto.builder()
+                .title("Team Player")
+                .isEarned(joinedTeams > 0)
+                .level(joinedTeams > 5 ? 3 : joinedTeams > 2 ? 2 : 1)
+                .colorClass("from-purple-500 to-pink-500")
+                .build());
+                
+        long ledTeams = teamRepository.countByLeaderId(userId);
+        badges.add(BadgeDto.builder()
+                .title("Born Leader")
+                .isEarned(ledTeams > 0)
+                .level(ledTeams > 5 ? 3 : ledTeams > 2 ? 2 : 1)
+                .colorClass("from-amber-500 to-orange-600")
+                .build());
         
         // Frontend Master Badge
         badges.add(createBadgeFromSkill("Frontend", "Frontend Master", skillScores, "from-blue-500 to-indigo-600"));

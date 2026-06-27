@@ -12,6 +12,9 @@ import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.ApplicationRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.services.notification.NotificationService;
+import com.hacknest.backend.dto.notification.CreateNotificationRequest;
+import com.hacknest.backend.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +33,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public ApplicationResponse applyToTeam(String teamId, String userId, ApplyRequest request) {
@@ -202,6 +206,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         teamRepository.save(team);
         Application savedApplication = applicationRepository.save(application);
+        
+        notificationService.createNotification(CreateNotificationRequest.builder()
+            .recipientId(savedApplication.getApplicantId())
+            .type(NotificationType.APPLICATION_STATUS)
+            .title("Application Accepted")
+            .message("Congratulations! Your application for team '" + team.getName() + "' has been ACCEPTED.")
+            .relatedEntityId(team.getId())
+            .build());
 
         return ApplicationResponse.builder()
                 .id(savedApplication.getId())
@@ -233,6 +245,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         application.setStatus(ApplicationStatus.REJECTED);
         Application savedApplication = applicationRepository.save(application);
+        
+        notificationService.createNotification(CreateNotificationRequest.builder()
+            .recipientId(savedApplication.getApplicantId())
+            .type(NotificationType.APPLICATION_STATUS)
+            .title("Application Rejected")
+            .message("Unfortunately, your application for team '" + team.getName() + "' was REJECTED.")
+            .relatedEntityId(team.getId())
+            .build());
 
         return ApplicationResponse.builder()
                 .id(savedApplication.getId())

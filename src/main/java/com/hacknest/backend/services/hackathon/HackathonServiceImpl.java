@@ -7,6 +7,11 @@ import com.hacknest.backend.dto.hackathon.HackathonSummaryResponse;
 import com.hacknest.backend.enums.HackathonStatus;
 import com.hacknest.backend.models.hackathon.Hackathon;
 import com.hacknest.backend.repositories.HackathonRepository;
+import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.models.User;
+import com.hacknest.backend.services.notification.NotificationService;
+import com.hacknest.backend.dto.notification.CreateNotificationRequest;
+import com.hacknest.backend.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,6 +32,8 @@ public class HackathonServiceImpl implements HackathonService {
 
     private final HackathonRepository hackathonRepository;
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Override
     public HackathonResponse createHackathon(CreateHackathonRequest request, String userId) {
@@ -64,6 +71,18 @@ public class HackathonServiceImpl implements HackathonService {
                 .build();
 
         hackathon = hackathonRepository.save(hackathon);
+        
+        // Notify all users about the new hackathon
+        List<User> allUsers = userRepository.findAll();
+        for (User u : allUsers) {
+            notificationService.createNotification(CreateNotificationRequest.builder()
+                .recipientId(u.getId())
+                .type(NotificationType.HACKATHON_UPDATE)
+                .title("New Hackathon: " + hackathon.getTitle())
+                .message("A new hackathon '" + hackathon.getTitle() + "' has been published! Check it out.")
+                .relatedEntityId(hackathon.getId())
+                .build());
+        }
 
         return buildHackathonResponse(hackathon);
     }

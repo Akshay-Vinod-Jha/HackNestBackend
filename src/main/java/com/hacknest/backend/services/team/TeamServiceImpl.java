@@ -10,6 +10,9 @@ import com.hacknest.backend.models.team.RequiredRole;
 import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.HackathonRepository;
 import com.hacknest.backend.repositories.TeamRepository;
+import com.hacknest.backend.services.notification.NotificationService;
+import com.hacknest.backend.dto.notification.CreateNotificationRequest;
+import com.hacknest.backend.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -32,6 +35,7 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final HackathonRepository hackathonRepository;
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
 
     @Override
     public TeamResponse createTeam(CreateTeamRequest request, String userId) {
@@ -73,6 +77,14 @@ public class TeamServiceImpl implements TeamService {
         team.setTeamCompletionPercentage(calculateTeamCompletion(team));
 
         team = teamRepository.save(team);
+        
+        notificationService.createNotification(CreateNotificationRequest.builder()
+            .recipientId(userId)
+            .type(NotificationType.SYSTEM)
+            .title("Team Created")
+            .message("Your team '" + team.getName() + "' has been successfully created!")
+            .relatedEntityId(team.getId())
+            .build());
 
         return buildTeamResponse(team);
     }

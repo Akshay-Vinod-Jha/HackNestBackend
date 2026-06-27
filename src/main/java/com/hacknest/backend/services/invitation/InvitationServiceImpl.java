@@ -12,6 +12,9 @@ import com.hacknest.backend.models.team.Team;
 import com.hacknest.backend.repositories.InvitationRepository;
 import com.hacknest.backend.repositories.TeamRepository;
 import com.hacknest.backend.repositories.UserRepository;
+import com.hacknest.backend.services.notification.NotificationService;
+import com.hacknest.backend.dto.notification.CreateNotificationRequest;
+import com.hacknest.backend.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +32,7 @@ public class InvitationServiceImpl implements InvitationService {
     private final InvitationRepository invitationRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public InvitationResponse sendInvitation(String teamId, String senderId, SendInvitationRequest request) {
@@ -87,6 +91,14 @@ public class InvitationServiceImpl implements InvitationService {
                 .build();
 
         invitation = invitationRepository.save(invitation);
+        
+        notificationService.createNotification(CreateNotificationRequest.builder()
+            .recipientId(request.getReceiverId())
+            .type(NotificationType.TEAM_INVITATION)
+            .title("Team Invitation")
+            .message("You have been invited to join the team '" + team.getName() + "' as a " + request.getRoleOffered() + ".")
+            .relatedEntityId(team.getId())
+            .build());
 
         return InvitationResponse.builder()
                 .id(invitation.getId())
