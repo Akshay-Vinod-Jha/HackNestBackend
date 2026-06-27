@@ -185,6 +185,32 @@ public class TeamServiceImpl implements TeamService {
         return PagedResponse.of(summaryPage);
     }
 
+    @Override
+    public List<TeamSummaryResponse> getUserTeams(String userId) {
+        List<Team> teams = teamRepository.findByLeaderIdOrMemberIdsContaining(userId, userId);
+        
+        return teams.stream().map(team -> {
+            List<RequiredRoleSummaryDto> roles = team.getRequiredRoles().stream()
+                .map(r -> RequiredRoleSummaryDto.builder()
+                        .roleName(r.getRoleName())
+                        .slots(r.getSlots())
+                        .filledSlots(r.getFilledSlots())
+                        .build())
+                .collect(Collectors.toList());
+                
+            return TeamSummaryResponse.builder()
+                .id(team.getId())
+                .name(team.getName())
+                .leaderId(team.getLeaderId())
+                .requiredRoles(roles)
+                .maxMembers(team.getMaxMembers())
+                .currentMemberCount(team.getCurrentMemberCount())
+                .isOpen(team.getIsOpen())
+                .status(team.getStatus())
+                .build();
+        }).collect(Collectors.toList());
+    }
+
     private int calculateTeamCompletion(Team team) {
         if (team.getRequiredRoles() == null || team.getRequiredRoles().isEmpty()) {
             return 100;

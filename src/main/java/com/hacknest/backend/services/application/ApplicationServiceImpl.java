@@ -86,6 +86,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         return ApplicationResponse.builder()
                 .id(application.getId())
                 .teamId(application.getTeamId())
+                .teamName(team.getName())
                 .applicantId(application.getApplicantId())
                 .roleApplied(application.getRoleApplied())
                 .message(application.getMessage())
@@ -136,16 +137,22 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public List<ApplicationResponse> getUserApplications(String userId) {
         List<Application> applications = applicationRepository.findByApplicantId(userId);
-        return applications.stream().map(app -> ApplicationResponse.builder()
+        return applications.stream().map(app -> {
+            String teamName = teamRepository.findById(app.getTeamId())
+                    .map(Team::getName)
+                    .orElse("Unknown Team");
+            return ApplicationResponse.builder()
                 .id(app.getId())
                 .teamId(app.getTeamId())
+                .teamName(teamName)
                 .applicantId(app.getApplicantId())
                 .roleApplied(app.getRoleApplied())
                 .message(app.getMessage())
                 .status(app.getStatus())
                 .createdAt(app.getCreatedAt())
                 .updatedAt(app.getUpdatedAt())
-                .build()).toList();
+                .build();
+        }).toList();
     }
 
     @Override

@@ -18,6 +18,7 @@ import com.hacknest.backend.services.invitation.InvitationService;
 import com.hacknest.backend.services.team.TeamService;
 import com.hacknest.backend.services.team.TeamAnalysisService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -116,5 +117,12 @@ public class TeamController {
     public ResponseEntity<ApiResponse<TeamAnalysisResponse>> analyzeTeam(@PathVariable String id) {
         TeamAnalysisResponse response = teamAnalysisService.analyzeTeam(id);
         return ResponseEntity.ok(ApiResponse.success("Team analysis completed successfully", response));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<TeamSummaryResponse>>> getUserTeams(
+            @PathVariable String userId) {
+        List<TeamSummaryResponse> response = teamService.getUserTeams(userId);
+        return ResponseEntity.ok(ApiResponse.success("User teams fetched successfully", response));
     }
 }

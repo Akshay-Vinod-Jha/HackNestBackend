@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class ApplicationResponse {
     private String id;
     private String teamId;
+    private String teamName;
     private String applicantId;
     private String roleApplied;
     private String message;
