@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -130,6 +131,21 @@ public class ApplicationServiceImpl implements ApplicationService {
         });
         
         return PagedResponse.of(summaryPage);
+    }
+
+    @Override
+    public List<ApplicationResponse> getUserApplications(String userId) {
+        List<Application> applications = applicationRepository.findByApplicantId(userId);
+        return applications.stream().map(app -> ApplicationResponse.builder()
+                .id(app.getId())
+                .teamId(app.getTeamId())
+                .applicantId(app.getApplicantId())
+                .roleApplied(app.getRoleApplied())
+                .message(app.getMessage())
+                .status(app.getStatus())
+                .createdAt(app.getCreatedAt())
+                .updatedAt(app.getUpdatedAt())
+                .build()).toList();
     }
 
     @Override

@@ -25,10 +25,16 @@ public class RecommendationController {
 
     @GetMapping("/teammates")
     public ResponseEntity<ApiResponse<List<TeammateRecommendation>>> getTeammateRecommendations(
-            @RequestParam String teamId,
+            @RequestParam(required = false) String teamId,
             @AuthenticationPrincipal User user) {
         
-        List<TeammateRecommendation> response = recommendationService.getTeammateRecommendations(teamId, user.getId());
+        List<TeammateRecommendation> response;
+        if (teamId == null || teamId.trim().isEmpty()) {
+            // For now, return an empty list if no specific team context is provided on the dashboard
+            response = java.util.Collections.emptyList();
+        } else {
+            response = recommendationService.getTeammateRecommendations(teamId, user.getId());
+        }
         return ResponseEntity.ok(ApiResponse.success("Teammate recommendations generated successfully", response));
     }
 
