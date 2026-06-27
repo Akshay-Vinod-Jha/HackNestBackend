@@ -18,7 +18,6 @@ public class CreateTeamRequest {
     @NotBlank(message = "Description is required")
     private String description;
 
-    @NotBlank(message = "Hackathon ID is required")
     private String hackathonId;
 
     @NotNull(message = "Max members is required")
