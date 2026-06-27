@@ -75,4 +75,38 @@ public class AuthServiceImpl implements AuthService {
                 .user(summary)
                 .build();
     }
+
+    @Override
+    public String forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User with this email does not exist"));
+
+        String token = java.util.UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setResetPasswordTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+        
+        userRepository.save(user);
+        
+        // In a real application, we would send an email here.
+        // Since we don't have an email server configured, we'll return the token
+        // so the frontend can mock the flow.
+        return token;
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
+
+        if (user.getResetPasswordTokenExpiry() == null || 
+            user.getResetPasswordTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("Password reset token has expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiry(null);
+        
+        userRepository.save(user);
+    }
 }

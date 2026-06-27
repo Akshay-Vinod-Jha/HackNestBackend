@@ -41,4 +41,7 @@ public class User {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
 }

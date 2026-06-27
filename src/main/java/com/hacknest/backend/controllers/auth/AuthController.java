@@ -47,4 +47,16 @@ public class AuthController {
                 .build();
         return ResponseEntity.ok(ApiResponse.success("Current user fetched successfully", summary));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody com.hacknest.backend.dto.auth.ForgotPasswordRequest request) {
+        String token = authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("Password reset token generated", token));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody com.hacknest.backend.dto.auth.ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success("Password successfully reset", null));
+    }
 }
