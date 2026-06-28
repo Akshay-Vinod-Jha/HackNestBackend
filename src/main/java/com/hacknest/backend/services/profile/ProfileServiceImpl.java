@@ -42,6 +42,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final ApplicationRepository applicationRepository;
     private final InvitationRepository invitationRepository;
     private final TrustService trustService;
+    private final com.hacknest.backend.repositories.LeaderboardRepository leaderboardRepository;
 
     @Override
     public ProfileResponse getMyProfile(String userId) {
@@ -302,6 +303,9 @@ public class ProfileServiceImpl implements ProfileService {
         long totalAchievements = achievementRepository.countByUserId(userId);
         
         int trustScore = trustService.calculateTrustScore(userId).getTrustScore();
+        
+        long higherRankers = leaderboardRepository.countByTrustScoreGreaterThan(trustScore);
+        int globalRank = (int) higherRankers + 1;
 
         return ProfileAnalyticsResponse.builder()
                 .userId(userId)
@@ -314,6 +318,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .acceptedInvitations(acceptedInvitations)
                 .totalAchievements(totalAchievements)
                 .trustScore(trustScore)
+                .globalRank(globalRank)
                 .build();
     }
 }

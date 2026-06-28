@@ -20,4 +20,5 @@ public class ProfileAnalyticsResponse {
     private long acceptedInvitations;
     private long totalAchievements;
     private int trustScore;
+    private int globalRank;
 }

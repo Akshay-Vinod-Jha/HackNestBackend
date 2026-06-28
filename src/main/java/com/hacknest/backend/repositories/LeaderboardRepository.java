@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface LeaderboardRepository extends MongoRepository<LeaderboardEntry, String> {
     Page<LeaderboardEntry> findByCollegeIgnoreCase(String college, Pageable pageable);
     Optional<LeaderboardEntry> findByUserId(String userId);
+    long countByTrustScoreGreaterThan(int trustScore);
 }
