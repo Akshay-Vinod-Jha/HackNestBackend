@@ -6,8 +6,8 @@ import lombok.Data;
 
 @Data
 public class SendInvitationRequest {
-    @NotBlank(message = "Receiver ID cannot be empty")
-    private String receiverId;
+    @NotBlank(message = "Receiver Email cannot be empty")
+    private String receiverEmail;
 
     @NotBlank(message = "Role offered cannot be empty")
     private String roleOffered;

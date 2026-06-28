@@ -47,9 +47,9 @@ public class InvitationServiceImpl implements InvitationService {
         }
 
         // 3. Receiver profile must exist
-        if (!userRepository.existsById(request.getReceiverId())) {
-            throw new IllegalArgumentException("Receiver profile not found");
-        }
+        com.hacknest.backend.models.User receiver = userRepository.findByEmail(request.getReceiverEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Receiver profile not found for email: " + request.getReceiverEmail()));
+        String receiverId = receiver.getId();
 
         // 4. Team should not be full
         if (team.getCurrentMemberCount() >= team.getMaxMembers()) {
@@ -57,12 +57,12 @@ public class InvitationServiceImpl implements InvitationService {
         }
 
         // 5. Receiver should not already be team member
-        if (team.getMemberIds().contains(request.getReceiverId())) {
+        if (team.getMemberIds().contains(receiverId)) {
             throw new IllegalArgumentException("Receiver is already a member of this team");
         }
 
         // 6. Receiver should not already have pending invitation
-        if (invitationRepository.existsByTeamIdAndReceiverId(teamId, request.getReceiverId())) {
+        if (invitationRepository.existsByTeamIdAndReceiverId(teamId, receiverId)) {
             throw new IllegalArgumentException("Receiver already has an invitation for this team");
         }
 
@@ -84,7 +84,7 @@ public class InvitationServiceImpl implements InvitationService {
         Invitation invitation = Invitation.builder()
                 .teamId(teamId)
                 .senderId(senderId)
-                .receiverId(request.getReceiverId())
+                .receiverId(receiverId)
                 .roleOffered(request.getRoleOffered())
                 .message(request.getMessage())
                 .status(InvitationStatus.PENDING)
@@ -93,7 +93,7 @@ public class InvitationServiceImpl implements InvitationService {
         invitation = invitationRepository.save(invitation);
         
         notificationService.createNotification(CreateNotificationRequest.builder()
-            .recipientId(request.getReceiverId())
+            .recipientId(receiverId)
             .type(NotificationType.TEAM_INVITATION)
             .title("Team Invitation")
             .message("You have been invited to join the team '" + team.getName() + "' as a " + request.getRoleOffered() + ".")
